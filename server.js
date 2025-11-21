@@ -15,10 +15,26 @@ const contactRoutes = require("./routes/contactRoutes");
 
 const app = express();
 
-app.use(cors());
+/* -------------------------------------------------
+   CORS (Express 5 compatible)
+--------------------------------------------------- */
+app.use(cors({
+  origin: [
+    "https://starlinegroup.ae",
+    "https://www.starlinegroup.ae",
+    "http://localhost:5173",
+    "http://localhost:3000"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+}));
+
 app.use(express.json());
 
-// Upload folders
+/* -------------------------------------------------
+   Create upload directories if missing
+--------------------------------------------------- */
 [
   "uploads/services",
   "uploads/news",
@@ -30,10 +46,14 @@ app.use(express.json());
   if (!fs.existsSync(full)) fs.mkdirSync(full, { recursive: true });
 });
 
-// Static
+/* -------------------------------------------------
+   Static file serving
+--------------------------------------------------- */
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Routes
+/* -------------------------------------------------
+   API Routes
+--------------------------------------------------- */
 app.use("/api/admin", adminRoutes);
 app.use("/api/hero", heroRoutes);
 app.use("/api/projects", projectRoutes);
@@ -42,13 +62,26 @@ app.use("/api/news", newsRoutes);
 app.use("/api/furniture", furnitureRoutes);
 app.use("/api/contact", contactRoutes);
 
-// Start
+/* -------------------------------------------------
+   Default Home Route (Fixes curl test)
+--------------------------------------------------- */
+app.get("/", (req, res) => {
+  res.send("Starline Backend API is Running 🚀");
+});
+
+/* -------------------------------------------------
+   Mongo + Start Server
+--------------------------------------------------- */
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
-    console.log("MongoDB connected");
-    app.listen(process.env.PORT || 5008, () =>
-      console.log("Server running...")
+    console.log("MongoDB Connected");
+
+    const PORT = process.env.PORT || 5008;
+    app.listen(PORT, "0.0.0.0", () =>
+      console.log(`Server started on port ${PORT}`)
     );
   })
-  .catch((err) => console.log(err));
+  .catch((err) => {
+    console.error("DB Connection Error:", err);
+  });
